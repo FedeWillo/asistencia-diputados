@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Comision xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://opendata.camara.cl/camaradiputados/v1">
+  <Id>544</Id>
+  <Nombre>Ética y Transparencia</Nombre>
+  <NombreWeb>Ética y Transparencia</NombreWeb>
+  <Alias>Ética</Alias>
+  <Tipo Valor="1">Permanente</Tipo>
+  <FechaInicio>2022-03-14T10:15:01</FechaInicio>
+  <FechaConstitucion>2022-03-14T10:15:01</FechaConstitucion>
+  <FechaTermino xsi:nil="true" />
+  <Correo />
+  <Telefono />
+  <Fax />
+  <Numero>31</Numero>
+  <Integrantes>
+    <DiputadoIntegrante>
+      <FechaInicio>2026-03-18T00:00:00</FechaInicio>
+      <FechaTermino xsi:nil="true" />
+      <Diputado><Id>803</Id><Nombre>René</Nombre><ApellidoPaterno>Alinco</ApellidoPaterno><ApellidoMaterno>Bustos</ApellidoMaterno></Diputado>
+    </DiputadoIntegrante>
+  </Integrantes>
+  <IntegrantesHistorico>
+    <DiputadoIntegrante>
+      <FechaInicio>2022-03-14T00:00:00</FechaInicio>
+      <FechaTermino>2026-03-10T00:00:00</FechaTermino>
+      <Diputado><Id>700</Id><Nombre>Ex</Nombre><ApellidoPaterno>Integrante</ApellidoPaterno><ApellidoMaterno></ApellidoMaterno></Diputado>
+    </DiputadoIntegrante>
+  </IntegrantesHistorico>
+  <PresidentesHistorico />
+  <Presidente><Id>803</Id><Nombre>René</Nombre><ApellidoPaterno>Alinco</ApellidoPaterno><ApellidoMaterno>Bustos</ApellidoMaterno></Presidente>
+  <Sesiones>
+    <SesionComision>
+      <Id>80001</Id>
+      <Numero>3</Numero>
+      <FechaInicio>2026-04-07T15:02:00</FechaInicio>
+      <FechaTermino>2026-04-07T16:45:00</FechaTermino>
+      <Tipo Valor="1">Ordinaria</Tipo>
+      <Estado Valor="3">Celebrada</Estado>
+      <PeriodoLegislativo><Id>11</Id><Nombre>2026-2030</Nombre></PeriodoLegislativo>
+      <Asistencia>
+        <Asistencia>
+          <TipoAsistencia Valor="1">Asiste</TipoAsistencia>
+          <Diputado><Id>803</Id><Nombre>René</Nombre><ApellidoPaterno>Alinco</ApellidoPaterno><ApellidoMaterno>Bustos</ApellidoMaterno></Diputado>
+          <TipoTitularAsistencia Valor="1">Titular</TipoTitularAsistencia>
+        </Asistencia>
+        <Asistencia>
+          <TipoAsistencia Valor="1">Asiste</TipoAsistencia>
+          <Diputado><Id>815</Id><Nombre>Sergio</Nombre><ApellidoPaterno>Bobadilla</ApellidoPaterno><ApellidoMaterno>Muñoz</ApellidoMaterno></Diputado>
+          <TipoTitularAsistencia Valor="2">Reemplazante</TipoTitularAsistencia>
+        </Asistencia>
+        <Asistencia>
+          <TipoAsistencia Valor="0">No Asiste</TipoAsistencia>
+          <Justificacion Valor="19">
+            <Nombre>Licencia médica (Art. 42)</Nombre>
+            <RebajaAsistencia>true</RebajaAsistencia>
+            <RebajaQuorum>false</RebajaQuorum>
+          </Justificacion>
+          <Diputado><Id>1012</Id><Nombre>Boris</Nombre><ApellidoPaterno>Barrera</ApellidoPaterno><ApellidoMaterno>Moreno</ApellidoMaterno></Diputado>
+          <TipoTitularAsistencia Valor="1">Titular</TipoTitularAsistencia>
+        </Asistencia>
+      </Asistencia>
+    </SesionComision>
+  </Sesiones>
+</Comision>

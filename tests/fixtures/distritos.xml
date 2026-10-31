@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DistritosColeccion xmlns="http://opendata.camara.cl/camaradiputados/v1">
+  <Distrito>
+    <Numero>10</Numero>
+    <Comunas>
+      <Comuna><Numero>1</Numero><Nombre>Providencia</Nombre></Comuna>
+      <Comuna><Numero>2</Numero><Nombre>Ñuñoa</Nombre></Comuna>
+    </Comunas>
+  </Distrito>
+</DistritosColeccion>

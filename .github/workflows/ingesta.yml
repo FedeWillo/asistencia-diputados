@@ -1,0 +1,44 @@
+name: Ingesta diaria
+
+on:
+  schedule:
+    # 09:00 UTC = 06:00 Chile (verano, UTC-3). En invierno (UTC-4) corre a las 05:00.
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ingesta
+  cancel-in-progress: false
+
+jobs:
+  ingesta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Tests
+        run: python -m unittest discover -s tests
+
+      - name: Ingesta del año en curso
+        run: python ingesta.py diario
+
+      - name: Estado
+        run: python ingesta.py estado | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # Mientras la base sea chica (< ~50 MB) se versiona en el repo.
+      # Cuando crezca: mover a un Release asset o a Cloudflare R2 y publicar solo los JSON del sitio.
+      - name: Commit de la base
+        run: |
+          git config user.name "ingesta-bot"
+          git config user.email "ingesta-bot@users.noreply.github.com"
+          git add data/camara.sqlite
+          git diff --cached --quiet || git commit -m "Ingesta $(date -u +%Y-%m-%d)"
+          git push

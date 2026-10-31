@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<VotacionesColeccion xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://opendata.camara.cl/camaradiputados/v1">
+  <Votacion>
+    <Id>90328</Id>
+    <Descripcion>Boletín N° 15805-07</Descripcion>
+    <Fecha>2026-10-07T13:18:43</Fecha>
+    <TotalSi>111</TotalSi>
+    <TotalNo>23</TotalNo>
+    <TotalAbstencion>5</TotalAbstencion>
+    <TotalDispensado>0</TotalDispensado>
+    <Quorum Valor="1">Quórum Simple</Quorum>
+    <Resultado Valor="1">Aprobado</Resultado>
+    <Tipo Valor="1">Proyecto de Ley</Tipo>
+  </Votacion>
+  <Votacion>
+    <Id>90001</Id>
+    <Descripcion>Votación huérfana</Descripcion>
+    <Fecha>2026-10-08T21:00:00</Fecha>
+    <TotalSi>1</TotalSi>
+    <TotalNo>0</TotalNo>
+    <TotalAbstencion>0</TotalAbstencion>
+    <TotalDispensado>0</TotalDispensado>
+    <Quorum Valor="1">Quórum Simple</Quorum>
+    <Resultado Valor="1">Aprobado</Resultado>
+    <Tipo Valor="1">Proyecto de Ley</Tipo>
+  </Votacion>
+</VotacionesColeccion>

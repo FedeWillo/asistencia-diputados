@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SesionSala xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://opendata.camara.cl/camaradiputados/v1">
+  <Id>4837</Id>
+  <Numero>77</Numero>
+  <FechaInicio>2026-10-07T10:00:00</FechaInicio>
+  <FechaTermino>2026-10-07T13:58:10</FechaTermino>
+  <Tipo Valor="1">Ordinaria</Tipo>
+  <Estado Valor="1">Celebrada</Estado>
+  <ListadoAsistencia>
+    <Asistencia>
+      <TipoAsistencia Valor="1">Asiste</TipoAsistencia>
+      <Diputado>
+        <Id>803</Id>
+        <Nombre>René</Nombre>
+        <ApellidoPaterno>Alinco</ApellidoPaterno>
+        <ApellidoMaterno>Bustos</ApellidoMaterno>
+      </Diputado>
+    </Asistencia>
+    <Asistencia>
+      <TipoAsistencia Valor="0">No Asiste</TipoAsistencia>
+      <Justificacion Valor="18">
+        <Nombre>Impedimento grave (Art. 42)</Nombre>
+        <RebajaAsistencia>true</RebajaAsistencia>
+        <RebajaQuorum>false</RebajaQuorum>
+      </Justificacion>
+      <Diputado>
+        <Id>1012</Id>
+        <Nombre>Boris</Nombre>
+        <ApellidoPaterno>Barrera</ApellidoPaterno>
+        <ApellidoMaterno>Moreno</ApellidoMaterno>
+      </Diputado>
+    </Asistencia>
+    <Asistencia>
+      <TipoAsistencia Valor="0">No Asiste</TipoAsistencia>
+      <Diputado>
+        <Id>999</Id>
+        <Nombre>Sin</Nombre>
+        <ApellidoPaterno>Justificar</ApellidoPaterno>
+        <ApellidoMaterno></ApellidoMaterno>
+      </Diputado>
+    </Asistencia>
+  </ListadoAsistencia>
+</SesionSala>

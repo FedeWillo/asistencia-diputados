@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SesionesSalaColeccion xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://opendata.camara.cl/camaradiputados/v1">
+  <Sesion>
+    <Id>4736</Id>
+    <Numero>105</Numero>
+    <FechaInicio>2026-01-05T17:00:00</FechaInicio>
+    <FechaTermino>2026-01-05T19:21:20</FechaTermino>
+    <Tipo Valor="1">Ordinaria</Tipo>
+    <Estado Valor="1">Celebrada</Estado>
+  </Sesion>
+  <Sesion>
+    <Id>4837</Id>
+    <Numero>77</Numero>
+    <FechaInicio>2026-10-07T10:00:00</FechaInicio>
+    <FechaTermino>2026-10-07T13:58:10</FechaTermino>
+    <Tipo Valor="1">Ordinaria</Tipo>
+    <Estado Valor="1">Celebrada</Estado>
+  </Sesion>
+  <Sesion>
+    <Id>4840</Id>
+    <Numero>80</Numero>
+    <FechaInicio>2026-10-21T10:00:00</FechaInicio>
+    <FechaTermino>2026-10-21T14:00:00</FechaTermino>
+    <Tipo Valor="1">Ordinaria</Tipo>
+    <Estado Valor="0">Citada</Estado>
+  </Sesion>
+</SesionesSalaColeccion>

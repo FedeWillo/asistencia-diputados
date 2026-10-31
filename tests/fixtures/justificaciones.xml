@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<JustificacionInasistenciasColeccion xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://opendata.camara.cl/camaradiputados/v1">
+  <JustificacionInasistencia Valor="10">
+    <Nombre>Misión oficial con Permiso Constitucional (Art. 37)</Nombre>
+    <RebajaAsistencia>true</RebajaAsistencia>
+    <RebajaQuorum>true</RebajaQuorum>
+  </JustificacionInasistencia>
+  <JustificacionInasistencia Valor="18">
+    <Nombre>Impedimento grave (Art. 42)</Nombre>
+    <RebajaAsistencia>true</RebajaAsistencia>
+    <RebajaQuorum>false</RebajaQuorum>
+  </JustificacionInasistencia>
+  <JustificacionInasistencia Valor="21">
+    <Nombre>Permiso motivos particulares sin goce de dieta (Art. 42)</Nombre>
+    <RebajaAsistencia>false</RebajaAsistencia>
+    <RebajaQuorum>false</RebajaQuorum>
+  </JustificacionInasistencia>
+</JustificacionInasistenciasColeccion>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DiputadosPeriodoColeccion xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://opendata.camara.cl/camaradiputados/v1">
+  <DiputadoPeriodo>
+    <FechaInicio>2030-03-10T00:00:00</FechaInicio>
+    <FechaTermino xsi:nil="true" />
+    <Diputado>
+      <Id>1074</Id>
+      <Nombre>Marisela</Nombre>
+      <Nombre2 />
+      <ApellidoPaterno>Santibáñez</ApellidoPaterno>
+      <ApellidoMaterno>Novoa</ApellidoMaterno>
+      <FechaNacimiento>1975-04-24T00:00:00</FechaNacimiento>
+      <RUT />
+      <RUTDV />
+      <Sexo Valor="2">Femenino</Sexo>
+      <Militancias>
+        <Militancia>
+          <FechaInicio>2019-04-17T00:00:00</FechaInicio>
+          <FechaTermino>2019-09-26T00:00:00</FechaTermino>
+          <Partido><Id>99</Id><Nombre>Independientes</Nombre><Alias>IND</Alias></Partido>
+        </Militancia>
+        <Militancia>
+          <FechaInicio>2026-03-11T00:00:00</FechaInicio>
+          <FechaTermino>2030-03-10T00:00:00</FechaTermino>
+          <Partido><Id>99</Id><Nombre>Independientes</Nombre><Alias>IND</Alias></Partido>
+        </Militancia>
+        <Militancia>
+          <FechaInicio>2019-09-27T00:00:00</FechaInicio>
+          <FechaTermino>2022-03-10T00:00:00</FechaTermino>
+          <Partido><Id>5</Id><Nombre>Partido Comunista</Nombre><Alias>PC</Alias></Partido>
+        </Militancia>
+      </Militancias>
+    </Diputado>
+  </DiputadoPeriodo>
+</DiputadosPeriodoColeccion>

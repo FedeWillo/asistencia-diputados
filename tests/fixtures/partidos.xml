@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PartidosPoliticosColeccion xmlns="http://opendata.camara.cl/camaradiputados/v1">
+  <PartidoPolitico><Id>5</Id><Nombre>Partido Comunista</Nombre><Alias>PC</Alias></PartidoPolitico>
+  <PartidoPolitico><Id>99</Id><Nombre>Independientes</Nombre><Alias>IND</Alias></PartidoPolitico>
+</PartidosPoliticosColeccion>
