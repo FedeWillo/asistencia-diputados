@@ -17,17 +17,17 @@
         <Militancia>
           <FechaInicio>2019-04-17T00:00:00</FechaInicio>
           <FechaTermino>2019-09-26T00:00:00</FechaTermino>
-          <Partido><Id>99</Id><Nombre>Independientes</Nombre><Alias>IND</Alias></Partido>
+          <Partido><Id>IND</Id><Nombre>Independientes</Nombre><Alias>IND</Alias></Partido>
         </Militancia>
         <Militancia>
           <FechaInicio>2026-03-11T00:00:00</FechaInicio>
           <FechaTermino>2030-03-10T00:00:00</FechaTermino>
-          <Partido><Id>99</Id><Nombre>Independientes</Nombre><Alias>IND</Alias></Partido>
+          <Partido><Id>IND</Id><Nombre>Independientes</Nombre><Alias>IND</Alias></Partido>
         </Militancia>
         <Militancia>
           <FechaInicio>2019-09-27T00:00:00</FechaInicio>
           <FechaTermino>2022-03-10T00:00:00</FechaTermino>
-          <Partido><Id>5</Id><Nombre>Partido Comunista</Nombre><Alias>PC</Alias></Partido>
+          <Partido><Id>PC</Id><Nombre>Partido Comunista</Nombre><Alias>PC</Alias></Partido>
         </Militancia>
       </Militancias>
     </Diputado>

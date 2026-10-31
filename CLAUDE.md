@@ -15,6 +15,7 @@ de Claude (`plan-webapp.md`, `investigacion-benchmark-y-datos.md`).
 ## Reglas
 - Namespace obligatorio en todo `findall`: `{http://opendata.camara.cl/camaradiputados/v1}` (usar `NS`).
 - Militancia actual = mayor `FechaTermino` (no vienen ordenadas). `DiputadoPeriodo/FechaInicio` tiene bug.
+- El Id de partido es un código de texto (`PC`, `IND`, `UDI`), no un número.
 - Sala: `Estado` 1 = Celebrada. Comisiones: `Estado` 3 = Celebrada. `OpcionVoto` 4 = No Vota.
 - Votaciones no traen sesión: se unen por `Fecha` dentro de `FechaInicio–FechaTermino` (`unir_votaciones_con_sesiones`).
 - Toda cambio de asistencia/justificación entre corridas queda en `asistencia_sala_cambio`.

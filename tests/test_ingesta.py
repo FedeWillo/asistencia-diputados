@@ -58,7 +58,7 @@ class TestParsers(unittest.TestCase):
         self.assertEqual(d["sexo"], 2)
         self.assertEqual(len(mil), 3)
         actual = max(mil, key=lambda m: m["fecha_termino"])
-        self.assertEqual(actual["partido_id"], 99)
+        self.assertEqual(actual["partido_id"], "IND")
         self.assertEqual(actual["fecha_inicio"], "2026-03-11T00:00:00")
 
     def test_votaciones_anno(self):

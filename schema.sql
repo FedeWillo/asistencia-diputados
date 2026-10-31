@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS justificacion_tipo (
 );
 
 CREATE TABLE IF NOT EXISTS partido (
-    id      INTEGER PRIMARY KEY,
+    id      TEXT PRIMARY KEY,     -- código de texto del API ("PC", "IND", "UDI"...)
     nombre  TEXT NOT NULL,
     alias   TEXT
 );
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS diputado (
 
 CREATE TABLE IF NOT EXISTS militancia (
     diputado_id     INTEGER NOT NULL REFERENCES diputado(id),
-    partido_id      INTEGER NOT NULL REFERENCES partido(id),
+    partido_id      TEXT NOT NULL REFERENCES partido(id),
     fecha_inicio    TEXT NOT NULL,
     fecha_termino   TEXT,
     PRIMARY KEY (diputado_id, partido_id, fecha_inicio)

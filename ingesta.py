@@ -147,7 +147,7 @@ def parse_justificaciones(raiz: ET.Element) -> list[dict]:
 
 def parse_partidos(raiz: ET.Element) -> list[dict]:
     return [
-        {"id": entero(p, "Id"), "nombre": texto(p, "Nombre"), "alias": texto(p, "Alias")}
+        {"id": texto(p, "Id"), "nombre": texto(p, "Nombre"), "alias": texto(p, "Alias")}  # Id es texto ("PC")
         for p in raiz.findall("c:PartidoPolitico", NS)
     ]
 
@@ -178,7 +178,7 @@ def parse_diputado(dip: ET.Element) -> tuple[dict, list[dict], list[dict]]:
     militancias, partidos = [], []
     for m in dip.findall("c:Militancias/c:Militancia", NS):
         partido = m.find("c:Partido", NS)
-        pid = entero(partido, "Id")
+        pid = texto(partido, "Id")  # código de texto, no número
         partidos.append({"id": pid, "nombre": texto(partido, "Nombre"), "alias": texto(partido, "Alias")})
         militancias.append({
             "diputado_id": d["id"],
@@ -346,7 +346,7 @@ def cargar_catalogos(conn: sqlite3.Connection) -> None:
             n = upsert(conn, tabla, parser(descargar_xml("WSComun", metodo)), clave)
             conn.commit()
             log.info("Catálogo %s: %d filas", tabla, n)
-        except RuntimeError as e:
+        except (RuntimeError, ValueError, AttributeError) as e:
             log.warning("Catálogo %s no cargado: %s", tabla, e)
 
 
