@@ -75,6 +75,12 @@ class TestParsers(unittest.TestCase):
         self.assertEqual([v["opcion"] for v in votos], [0, 1, 4])
         self.assertEqual(votos[2]["diputado_id"], 1012)
 
+    def test_lista_comisiones(self):
+        filas = ingesta.parse_lista_comisiones(fixture("comisiones_periodo.xml"))
+        self.assertEqual([f["id"] for f in filas], [544, 1921])
+        self.assertEqual(filas[0]["presidente_id"], 803)
+        self.assertIsNone(filas[1]["presidente_id"])
+
     def test_comision(self):
         com, integrantes, sesiones = ingesta.parse_comision(fixture("comision_sesiones.xml"))
         self.assertEqual(com["id"], 544)
@@ -84,6 +90,7 @@ class TestParsers(unittest.TestCase):
         self.assertEqual(len(sesiones), 1)
         s = sesiones[0]
         self.assertEqual(s["estado"], 3)
+        self.assertEqual(s["periodo_id"], 11)
         self.assertEqual(s["comision_id"], 544)
         self.assertEqual(len(s["asistencias"]), 3)
         self.assertEqual(s["asistencias"][1]["titular"], 2)
@@ -103,6 +110,8 @@ class TestCarga(unittest.TestCase):
         ("WSLegislativo", "retornarVotacionesXAnno"): "votaciones_anno.xml",
         ("WSLegislativo", "retornarVotacionDetalle"): "votacion_detalle.xml",
         ("WSComision", "retornarSesionesXComisionYAnno"): "comision_sesiones.xml",
+        ("WSComision", "retornarComision"): "comision_sesiones.xml",
+        ("WSComision", "retornarComisionesXPeriodo"): "comisiones_periodo.xml",
     }
 
     def falso_descargar(self, servicio, metodo, **params):
@@ -175,13 +184,35 @@ class TestCarga(unittest.TestCase):
             p.assert_not_called()
 
     def test_comisiones(self):
-        ingesta.cargar_comisiones(self.conn, [544], 2026)
+        ingesta.cargar_comisiones(self.conn, [544], [2026])
         self.assertEqual(self.n("comision"), 1)
         self.assertEqual(self.n("integrante_comision"), 2)
         self.assertEqual(self.n("sesion_comision"), 1)
         self.assertEqual(self.n("asistencia_comision"), 3)
         r = self.conn.execute("SELECT titular FROM asistencia_comision WHERE diputado_id = 815").fetchone()
         self.assertEqual(r["titular"], 2)
+        self.assertEqual(self.conn.execute("SELECT periodo_id FROM sesion_comision").fetchone()[0], 11)
+
+    def test_comisiones_por_periodo(self):
+        ingesta.cargar_comisiones_periodo(self.conn, 10, [2025, 2026])
+        self.assertEqual(self.n("comision"), 2)   # 544 y 1921 (la ficha de 1921 se completa con el fixture genérico)
+        self.assertGreaterEqual(self.n("sesion_comision"), 1)
+
+    def test_migracion_agrega_periodo_id(self):
+        ruta = RAIZ / "data" / "_test_migracion.sqlite"
+        ruta.unlink(missing_ok=True)
+        try:
+            viejo = sqlite3.connect(ruta)
+            viejo.execute("CREATE TABLE sesion_comision (id INTEGER PRIMARY KEY, comision_id INTEGER, numero INTEGER, "
+                          "fecha_inicio TEXT, fecha_termino TEXT, tipo INTEGER, tipo_nombre TEXT, estado INTEGER, "
+                          "estado_nombre TEXT, anno INTEGER NOT NULL)")
+            viejo.commit(); viejo.close()
+            conn = ingesta.abrir_db(ruta)
+            cols = {r[1] for r in conn.execute("PRAGMA table_info(sesion_comision)")}
+            conn.close()
+            self.assertIn("periodo_id", cols)
+        finally:
+            ruta.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

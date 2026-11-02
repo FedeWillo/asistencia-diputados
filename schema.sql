@@ -136,8 +136,9 @@ CREATE TABLE IF NOT EXISTS sesion_comision (
     tipo            INTEGER,
     tipo_nombre     TEXT,
     estado          INTEGER,    -- 3 = Celebrada (distinto de Sala)
-    estado_nombre   TEXT,
-    anno            INTEGER NOT NULL
+    estado_nombre   TEXT,       -- 1 Citada, 2 En Comité, 3 Celebrada, 4 Suspendida, 5 Fracasada
+    anno            INTEGER NOT NULL,
+    periodo_id      INTEGER     -- período legislativo (10 = 2022-2026, 11 = 2026-2030)
 );
 
 CREATE TABLE IF NOT EXISTS asistencia_comision (

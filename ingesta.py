@@ -10,7 +10,8 @@ Uso:
     python ingesta.py diputados
     python ingesta.py sala --anno 2026 [--limite 5] [--solo-nuevas]
     python ingesta.py votaciones --anno 2026 [--limite 5] [--solo-nuevas]
-    python ingesta.py comisiones --ids 544 411 --anno 2026
+    python ingesta.py comisiones --periodo 10 --annos 2022 2023 2024 2025 2026
+    python ingesta.py comisiones --ids 544 411 --annos 2026
     python ingesta.py diario            # catalogos + diputados + sala y votaciones del año en curso
     python ingesta.py estado            # resumen de lo cargado
 
@@ -39,7 +40,7 @@ RAIZ = Path(__file__).resolve().parent
 DB_PATH = RAIZ / "data" / "camara.sqlite"
 SCHEMA_PATH = RAIZ / "schema.sql"
 
-# Comisiones conocidas 2026 mientras retornarComisionesXPeriodo?prmPeriodoId=11 siga fallando.
+# Respaldo si retornarComisionesXPeriodo falla. (El parámetro correcto es prmPeriodoLegislativoId, no prmPeriodoId.)
 COMISIONES_FALLBACK = [544, 411]
 
 log = logging.getLogger("ingesta")
@@ -126,6 +127,10 @@ def abrir_db(path: Path = DB_PATH) -> sqlite3.Connection:
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
+    # Migración: bases creadas antes de agregar periodo_id a sesion_comision
+    if "periodo_id" not in {r[1] for r in conn.execute("PRAGMA table_info(sesion_comision)")}:
+        conn.execute("ALTER TABLE sesion_comision ADD COLUMN periodo_id INTEGER")
+        conn.commit()
     return conn
 
 
@@ -270,20 +275,29 @@ def parse_votacion_detalle(raiz: ET.Element) -> tuple[dict, list[dict]]:
     return cab, votos
 
 
+def _cabecera_comision(c: ET.Element) -> dict:
+    pres = c.find("c:Presidente", NS)
+    return {
+        "id": entero(c, "Id"),
+        "nombre": texto(c, "Nombre"),
+        "alias": texto(c, "Alias"),
+        "tipo": valor(c, "Tipo"),
+        "tipo_nombre": texto(c, "Tipo"),
+        "fecha_inicio": texto(c, "FechaInicio"),
+        "fecha_termino": texto(c, "FechaTermino"),
+        "presidente_id": entero(pres, "Id") if pres is not None else None,
+    }
+
+
+def parse_lista_comisiones(raiz: ET.Element) -> list[dict]:
+    """retornarComisionesXPeriodo / retornarComisionesVigentes: lista de Comision (sin integrantes ni sesiones)."""
+    return [_cabecera_comision(c) for c in raiz.findall("c:Comision", NS) if entero(c, "Id") is not None]
+
+
 def parse_comision(raiz: ET.Element) -> tuple[dict, list[dict], list[dict]]:
     """raíz = Comision (de retornarComision o de retornarSesionesXComisionYAnno).
     Devuelve (comision, integrantes, sesiones_con_asistencia)."""
-    pres = raiz.find("c:Presidente", NS)
-    com = {
-        "id": entero(raiz, "Id"),
-        "nombre": texto(raiz, "Nombre"),
-        "alias": texto(raiz, "Alias"),
-        "tipo": valor(raiz, "Tipo"),
-        "tipo_nombre": texto(raiz, "Tipo"),
-        "fecha_inicio": texto(raiz, "FechaInicio"),
-        "fecha_termino": texto(raiz, "FechaTermino"),
-        "presidente_id": entero(pres, "Id") if pres is not None else None,
-    }
+    com = _cabecera_comision(raiz)
     integrantes = []
     for ruta, historico in (("Integrantes", 0), ("IntegrantesHistorico", 1)):
         for di in raiz.findall(f"c:{ruta}/c:DiputadoIntegrante", NS):
@@ -306,8 +320,9 @@ def parse_comision(raiz: ET.Element) -> tuple[dict, list[dict], list[dict]]:
             "tipo": valor(s, "Tipo"),
             "tipo_nombre": texto(s, "Tipo"),
             "estado": valor(s, "Estado"),     # 3 = Celebrada
-            "estado_nombre": texto(s, "Estado"),
+            "estado_nombre": texto(s, "Estado"),   # 1 Citada, 2 En Comité, 3 Celebrada, 4 Suspendida, 5 Fracasada
             "anno": anno_de(fi),
+            "periodo_id": entero(s.find("c:PeriodoLegislativo", NS), "Id"),
             "asistencias": [_parse_asistencia(a) for a in s.findall("c:Asistencia/c:Asistencia", NS)],
         }
         sesiones.append(sesion)
@@ -480,28 +495,50 @@ def cargar_votaciones(conn: sqlite3.Connection, anno: int, limite: int | None = 
     log.info("Votaciones %d: %d unidas a sesión en esta corrida; %d sin sesión", anno, unidas, sin_sesion)
 
 
-def cargar_comisiones(conn: sqlite3.Connection, ids: list[int], anno: int) -> None:
+def cargar_comisiones(conn: sqlite3.Connection, ids: list[int], annos: list[int]) -> None:
+    """Integrantes (retornarComision) + sesiones con asistencia (retornarSesionesXComisionYAnno) por año."""
     for cid in ids:
         try:
-            raiz = descargar_xml("WSComision", "retornarSesionesXComisionYAnno", prmComisionId=cid, prmAnno=anno)
+            com, integrantes, _ = parse_comision(descargar_xml("WSComision", "retornarComision", prmComisionId=cid))
+            if com["id"] is None:
+                log.warning("Comisión %d: el API devuelve vacío (¿Id sin publicar en datos abiertos?)", cid)
+                continue
+            upsert(conn, "comision", [com], ("id",))
+            asegurar_diputados(conn, {i["diputado_id"] for i in integrantes})
+            upsert(conn, "integrante_comision", integrantes, ("comision_id", "diputado_id", "fecha_inicio"))
         except RuntimeError as e:
-            log.error("Comisión %d: %s", cid, e)
-            continue
-        com, integrantes, sesiones = parse_comision(raiz)
-        if com["id"] is None:
-            log.warning("Comisión %d: respuesta sin Id (¿no existe?)", cid)
-            continue
-        upsert(conn, "comision", [com], ("id",))
-        upsert(conn, "integrante_comision", integrantes, ("comision_id", "diputado_id", "fecha_inicio"))
-        for s in sesiones:
-            asistencias = s.pop("asistencias")
-            upsert(conn, "sesion_comision", [s], ("id",))
-            asegurar_diputados(conn, {a["diputado_id"] for a in asistencias})
-            filas = [{"sesion_id": s["id"], "diputado_id": a["diputado_id"], "asiste": a["asiste"],
-                      "justificacion_valor": a["justificacion_valor"], "titular": a["titular"]} for a in asistencias]
-            upsert(conn, "asistencia_comision", filas, ("sesion_id", "diputado_id"))
-        conn.commit()
-        log.info("Comisión %d (%s): %d sesiones %d, %d integrantes", cid, com["nombre"], len(sesiones), anno, len(integrantes))
+            log.error("Comisión %d (integrantes): %s", cid, e)
+        for anno in annos:
+            try:
+                raiz = descargar_xml("WSComision", "retornarSesionesXComisionYAnno", prmComisionId=cid, prmAnno=anno)
+            except RuntimeError as e:
+                log.error("Comisión %d año %d: %s", cid, anno, e)
+                continue
+            com, _, sesiones = parse_comision(raiz)
+            if com["id"] is None:
+                continue
+            upsert(conn, "comision", [com], ("id",))
+            for s in sesiones:
+                asistencias = s.pop("asistencias")
+                upsert(conn, "sesion_comision", [s], ("id",))
+                asegurar_diputados(conn, {a["diputado_id"] for a in asistencias})
+                filas = [{"sesion_id": s["id"], "diputado_id": a["diputado_id"], "asiste": a["asiste"],
+                          "justificacion_valor": a["justificacion_valor"], "titular": a["titular"]} for a in asistencias]
+                upsert(conn, "asistencia_comision", filas, ("sesion_id", "diputado_id"))
+            conn.commit()
+            log.info("Comisión %d (%s) %d: %d sesiones", cid, com["nombre"], anno, len(sesiones))
+
+
+def cargar_comisiones_periodo(conn: sqlite3.Connection, periodo_id: int, annos: list[int]) -> None:
+    """Todas las comisiones que el API lista para un período legislativo (11 = 2026-2030, 10 = 2022-2026)."""
+    lista = parse_lista_comisiones(descargar_xml("WSComision", "retornarComisionesXPeriodo", prmPeriodoLegislativoId=periodo_id))
+    upsert(conn, "comision", lista, ("id",))
+    conn.commit()
+    log.info("Período %d: el API lista %d comisiones", periodo_id, len(lista))
+    if periodo_id == 11 and len(lista) <= 2:
+        log.warning("El API aún no publica las comisiones del período 2026-2030 (solo %d, de 2022); "
+                    "camara.cl lista 27 permanentes con Id nuevos (p. ej. 4894 Salud) que el API devuelve vacíos.", len(lista))
+    cargar_comisiones(conn, [c["id"] for c in lista] or COMISIONES_FALLBACK, annos)
 
 
 def mostrar_estado(conn: sqlite3.Connection) -> None:
@@ -538,8 +575,9 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--limite", type=int)
     sp.add_argument("--todas", action="store_true", help="recargar también las que ya tienen detalle")
     sp = sub.add_parser("comisiones")
-    sp.add_argument("--ids", type=int, nargs="+", default=COMISIONES_FALLBACK)
-    sp.add_argument("--anno", type=int, default=date.today().year)
+    sp.add_argument("--periodo", type=int, help="cargar todas las comisiones del período legislativo (10 = 2022-2026, 11 = 2026-2030)")
+    sp.add_argument("--ids", type=int, nargs="+", help="o solo estas comisiones")
+    sp.add_argument("--annos", type=int, nargs="+", default=[date.today().year])
     sp = sub.add_parser("diario")
     sp.add_argument("--anno", type=int, default=date.today().year)
     sub.add_parser("estado")
@@ -566,13 +604,16 @@ def main(argv: list[str] | None = None) -> int:
         elif args.comando == "votaciones":
             cargar_votaciones(conn, args.anno, args.limite, solo_nuevas=not args.todas)
         elif args.comando == "comisiones":
-            cargar_comisiones(conn, args.ids, args.anno)
+            if args.periodo:
+                cargar_comisiones_periodo(conn, args.periodo, args.annos)
+            else:
+                cargar_comisiones(conn, args.ids or COMISIONES_FALLBACK, args.annos)
         elif args.comando == "diario":
             cargar_catalogos(conn)
             cargar_diputados(conn)
             cargar_sala(conn, args.anno)
             cargar_votaciones(conn, args.anno)
-            cargar_comisiones(conn, COMISIONES_FALLBACK, args.anno)
+            cargar_comisiones_periodo(conn, 11, [args.anno])
     except Exception as e:  # noqa: BLE001 — registrar y propagar
         ok, detalle = 0, repr(e)
         log.exception("Corrida fallida")

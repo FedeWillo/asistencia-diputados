@@ -20,7 +20,9 @@ de Claude (`plan-webapp.md`, `investigacion-benchmark-y-datos.md`).
 - Votaciones no traen sesión: se unen por `Fecha` dentro de `FechaInicio–FechaTermino` (`unir_votaciones_con_sesiones`).
 - Toda cambio de asistencia/justificación entre corridas queda en `asistencia_sala_cambio`.
 - Probar contra el API con `--limite 5` antes de cargas grandes. El API falla intermitentemente: ya hay backoff.
-- `retornarComisionesXPeriodo?prmPeriodoId=11` da error de servidor (31-10-2026): lista de comisiones en `COMISIONES_FALLBACK`.
+- `retornarComisionesXPeriodo` usa el parámetro **`prmPeriodoLegislativoId`** (no `prmPeriodoId`; con el nombre equivocado da error de servidor). Período 10 = 2022-2026 (91 comisiones); período 11 = 2026-2030, donde el API solo lista 2 (411, 544, con Id de 2022) y devuelve vacío para los Id nuevos de camara.cl (4894 Salud…). Comisiones 2026-2030 requieren scraping; el cron diario avisa en el log si el API empieza a publicarlas.
+- Estados de sesión de comisión: 1 Citada, 2 En Comité, 3 Celebrada, 4 Suspendida, 5 Fracasada.
+- `OpcionVoto` 3 = Dispensado.
 - Español en código, comentarios y mensajes. Sin dependencias externas salvo justificación explícita.
 
 ## Comandos
@@ -28,4 +30,5 @@ de Claude (`plan-webapp.md`, `investigacion-benchmark-y-datos.md`).
     python ingesta.py catalogos && python ingesta.py diputados
     python ingesta.py sala --anno 2026 --limite 5
     python ingesta.py votaciones --anno 2026 --limite 5
+    python ingesta.py comisiones --periodo 10 --annos 2022 2023 2024 2025 2026
     python ingesta.py estado

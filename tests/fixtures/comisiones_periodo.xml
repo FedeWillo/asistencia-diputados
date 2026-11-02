@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ComisionesColeccion xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://opendata.camara.cl/camaradiputados/v1">
+  <Comision>
+    <Id>544</Id>
+    <Nombre>Ética y Transparencia</Nombre>
+    <NombreWeb>Ética y Transparencia</NombreWeb>
+    <Alias>Ética</Alias>
+    <Tipo Valor="1">Permanente</Tipo>
+    <FechaInicio>2022-03-14T10:15:01</FechaInicio>
+    <FechaConstitucion>2022-03-14T10:15:01</FechaConstitucion>
+    <FechaTermino xsi:nil="true" />
+    <Numero>31</Numero>
+    <Presidente><Id>803</Id><Nombre>René</Nombre><ApellidoPaterno>Alinco</ApellidoPaterno><ApellidoMaterno>Bustos</ApellidoMaterno></Presidente>
+  </Comision>
+  <Comision>
+    <Id>1921</Id>
+    <Nombre>Mujeres y Equidad de Género</Nombre>
+    <Tipo Valor="1">Permanente</Tipo>
+    <FechaInicio>2022-03-14T10:15:01</FechaInicio>
+    <FechaTermino xsi:nil="true" />
+  </Comision>
+</ComisionesColeccion>

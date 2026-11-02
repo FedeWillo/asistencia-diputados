@@ -5,6 +5,10 @@ on:
     # 09:00 UTC = 06:00 Chile (verano, UTC-3). En invierno (UTC-4) corre a las 05:00.
     - cron: "0 9 * * *"
   workflow_dispatch:
+    inputs:
+      comando:
+        description: "Argumentos de ingesta.py (por defecto: diario). Ej: comisiones --periodo 10 --annos 2022 2023 2024 2025 2026"
+        default: "diario"
 
 permissions:
   contents: write
@@ -16,7 +20,7 @@ concurrency:
 jobs:
   ingesta:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
 
@@ -27,8 +31,10 @@ jobs:
       - name: Tests
         run: python -m unittest discover -s tests
 
-      - name: Ingesta del año en curso
-        run: python ingesta.py diario
+      - name: Ingesta
+        env:
+          COMANDO: ${{ github.event.inputs.comando || 'diario' }}
+        run: python ingesta.py $COMANDO
 
       - name: Estado
         run: python ingesta.py estado | tee -a "$GITHUB_STEP_SUMMARY"
