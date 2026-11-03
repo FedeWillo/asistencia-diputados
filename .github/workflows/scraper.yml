@@ -6,6 +6,10 @@ name: Scraper camara.cl
 on:
   workflow_dispatch:
     inputs:
+      diagnostico:
+        description: "Marcar para correr solo el diagnóstico de acceso al sitio"
+        type: boolean
+        default: false
       fichas:
         description: "Argumentos de `scraper.py fichas` (vacío = no correr). Ej: --limite 3 --paginas 2"
         default: "--limite 3 --paginas 2"
@@ -40,14 +44,18 @@ jobs:
       - name: Tests (incluye extractores con Chromium)
         run: python -m unittest discover -s tests
 
+      - name: Diagnóstico de acceso
+        if: ${{ inputs.diagnostico }}
+        run: python scraper.py diagnostico
+
       - name: Fichas de Sala
-        if: ${{ inputs.fichas != '' }}
+        if: ${{ inputs.fichas != '' && !inputs.diagnostico }}
         env:
           ARGS: ${{ inputs.fichas }}
         run: python scraper.py fichas $ARGS
 
       - name: Comisiones 2026-2030
-        if: ${{ inputs.comisiones != '' }}
+        if: ${{ inputs.comisiones != '' && !inputs.diagnostico }}
         env:
           ARGS: ${{ inputs.comisiones }}
         run: python scraper.py comisiones $ARGS

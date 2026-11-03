@@ -493,6 +493,31 @@ def cmd_comisiones(conn, page, tipo: str, ids: list[int] | None, desde: date, ha
                 log.error("Asistencia sesión %d: %s", s["id"], e)
 
 
+def cmd_diagnostico() -> None:
+    """Pide una ficha con distintas configuraciones y muestra qué responde el sitio (para entender un bloqueo).
+    No intenta evadir nada: solo compara el User-Agent propio con el de Chromium por defecto."""
+    from playwright.sync_api import sync_playwright
+    url = URL_FICHA.format(id=815)
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        for nombre, ua in (("ua_propio", None), ("ua_chromium_por_defecto", "__defecto__")):
+            kw = {"locale": "es-CL"}
+            if ua is None:
+                kw["user_agent"] = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                                    "Chrome/130.0 Safari/537.36 asistencia-diputados-scraper")
+            ctx = browser.new_context(**kw)
+            page = ctx.new_page()
+            try:
+                resp = page.goto(url, wait_until="domcontentloaded", timeout=45000)
+                cab = {k: v for k, v in resp.headers.items() if k.lower() in ("server", "content-type", "x-cache", "via", "x-served-by", "cf-ray", "x-akamai-transformed")}
+                cuerpo = " ".join((page.inner_text("body") or "").split())[:140]
+                print(f"[{nombre}] status={resp.status} titulo={page.title()!r} cabeceras={cab} cuerpo={cuerpo!r}")
+            except Exception as e:  # noqa: BLE001
+                print(f"[{nombre}] error: {e}")
+            ctx.close()
+        browser.close()
+
+
 def mostrar_estado(conn) -> None:
     for t in ("ficha_diputado", "ingreso_sala", "web_comision", "web_sesion_comision", "web_asistencia_comision"):
         print(f"{t:26s} {conn.execute(f'SELECT COUNT(*) FROM {t}').fetchone()[0]:>8d}")
@@ -519,9 +544,13 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--hasta", type=date.fromisoformat, default=date.today())
     sp.add_argument("--dias-recarga", type=int, default=21, help="vuelve a bajar la asistencia de sesiones más recientes que esto")
     sub.add_parser("estado")
+    sub.add_parser("diagnostico", help="compara configuraciones de navegador contra el sitio (entender bloqueos)")
     args = p.parse_args(argv)
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S")
 
+    if args.comando == "diagnostico":
+        cmd_diagnostico()
+        return 0
     conn = abrir_db(args.db)
     if args.comando == "estado":
         mostrar_estado(conn)
