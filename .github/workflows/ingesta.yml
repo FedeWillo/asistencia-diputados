@@ -2,8 +2,8 @@ name: Ingesta diaria
 
 on:
   schedule:
-    # 09:00 UTC = 06:00 Chile (verano, UTC-3). En invierno (UTC-4) corre a las 05:00.
-    - cron: "0 9 * * *"
+    # 09:17 UTC = 06:17 Chile (verano, UTC-3). Se evita el minuto 0: GitHub retrasaba el cron de las 09:00 UTC entre 6 y 10 horas.
+    - cron: "17 9 * * *"
   workflow_dispatch:
     inputs:
       comando:
