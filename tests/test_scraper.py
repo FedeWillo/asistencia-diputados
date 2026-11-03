@@ -130,6 +130,16 @@ class TestPuros(unittest.TestCase):
         self.assertEqual(scraper.meses_en_rango(date(2026, 11, 20), date(2027, 2, 1)), [(2026, 11), (2026, 12), (2027, 1), (2027, 2)])
         self.assertEqual(len(scraper.meses_en_rango(date(2026, 3, 11), date(2026, 11, 3))), 9)
 
+    def test_opciones_comunes_en_cualquier_posicion(self):
+        p = scraper.crear_parser()
+        for argv in (["fichas", "--limite", "3", "--visible"], ["--visible", "fichas", "--limite", "3"]):
+            a = p.parse_args(argv)
+            self.assertTrue(a.visible)
+            self.assertEqual(a.limite, 3)
+        self.assertFalse(p.parse_args(["estado"]).visible)
+        self.assertTrue(p.parse_args(["diagnostico", "--visible"]).visible)
+        self.assertEqual(p.parse_args(["comisiones", "--ids", "4894"]).ids, [4894])
+
     def test_parse_ficha_sin_datos_no_revienta(self):
         ficha, filas = scraper.parse_ficha({"cabecera": None, "resumen": None, "detalle": [["fila rara", "-", "Asiste"]]}, 1)
         self.assertIsNone(ficha["distrito"])

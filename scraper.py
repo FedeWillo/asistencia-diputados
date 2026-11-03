@@ -531,25 +531,34 @@ def mostrar_estado(conn) -> None:
     print(f"Última sesión de comisión con asistencia: {r}")
 
 
-def main(argv: list[str] | None = None) -> int:
+def crear_parser() -> argparse.ArgumentParser:
+    # Las opciones comunes valen antes o después del subcomando: `scraper.py --visible fichas` y `scraper.py fichas --visible`.
+    comunes = argparse.ArgumentParser(add_help=False)
+    comunes.add_argument("--db", type=Path, default=argparse.SUPPRESS)
+    comunes.add_argument("-v", "--verbose", action="store_true", default=argparse.SUPPRESS)
+    comunes.add_argument("--visible", action="store_true", default=argparse.SUPPRESS, help="mostrar el navegador (para depurar en tu computador)")
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--db", type=Path, default=ingesta.DB_PATH)
     p.add_argument("-v", "--verbose", action="store_true")
     p.add_argument("--visible", action="store_true", help="mostrar el navegador (para depurar en tu computador)")
     sub = p.add_subparsers(dest="comando", required=True)
-    sp = sub.add_parser("fichas")
+    sp = sub.add_parser("fichas", parents=[comunes])
     sp.add_argument("--ids", type=int, nargs="+")
     sp.add_argument("--limite", type=int)
     sp.add_argument("--paginas", type=int, help="cuántas páginas del detalle leer por diputado (10 sesiones por página; por defecto todas)")
-    sp = sub.add_parser("comisiones")
+    sp = sub.add_parser("comisiones", parents=[comunes])
     sp.add_argument("--tipo", choices=sorted(URL_LISTAS), default="permanentes")
     sp.add_argument("--ids", type=int, nargs="+", help="Id de comisión de la web (p. ej. 4894 = Salud)")
     sp.add_argument("--desde", type=date.fromisoformat, default=INICIO_PERIODO)
     sp.add_argument("--hasta", type=date.fromisoformat, default=date.today())
     sp.add_argument("--dias-recarga", type=int, default=21, help="vuelve a bajar la asistencia de sesiones más recientes que esto")
-    sub.add_parser("estado")
-    sub.add_parser("diagnostico", help="compara configuraciones de navegador contra el sitio (entender bloqueos)")
-    args = p.parse_args(argv)
+    sub.add_parser("estado", parents=[comunes])
+    sub.add_parser("diagnostico", parents=[comunes], help="compara configuraciones de navegador contra el sitio (entender bloqueos)")
+    return p
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = crear_parser().parse_args(argv)
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S")
 
     if args.comando == "diagnostico":
