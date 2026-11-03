@@ -356,11 +356,30 @@ def ir(page, url: str, intentos: int = 3):
 
 
 def hacer_postback(page, accion) -> None:
-    """Ejecuta una acción que dispara un postback de ASP.NET (clic en paginador, cambio de selector) y espera la recarga."""
-    with page.expect_navigation(wait_until="domcontentloaded", timeout=60000) as nav:
+    """Ejecuta una acción que dispara un postback de ASP.NET (clic en el paginador, cambio de selector) y espera la
+    respuesta del servidor. En camara.cl los postbacks son PARCIALES (AJAX): la página no navega, solo se reemplaza un
+    panel, así que se espera el POST y no una navegación (verificado el 3-nov: la marca JS de la página sobrevive)."""
+    with page.expect_response(lambda r: r.request.method == "POST" and ".aspx" in r.url, timeout=45000) as info:
         accion()
-    revisar_bloqueo(page, nav.value)
+    resp = info.value
+    if resp.status in (403, 429, 503):
+        raise Bloqueado(f"El sitio respondió {resp.status} a un postback en {page.url}")
+    page.wait_for_timeout(600)       # el panel se actualiza justo después de la respuesta
+    revisar_bloqueo(page)
     pausa()
+
+
+def esperar_valor(page, js: str, esperado, timeout_seg: float = 15) -> bool:
+    """Consulta `js` hasta que devuelva `esperado` (tolera que la página se recargue en medio)."""
+    limite = time.time() + timeout_seg
+    while time.time() < limite:
+        try:
+            if page.evaluate(js) == esperado:
+                return True
+        except Exception:  # noqa: BLE001 — contexto destruido por una navegación
+            pass
+        time.sleep(0.4)
+    return False
 
 
 def abrir_navegador(headless: bool = True):
@@ -390,6 +409,8 @@ def scrapear_ficha(page, diputado_id: int, max_paginas: int | None = None) -> tu
         if not siguiente:
             break
         hacer_postback(page, lambda sid=siguiente["id"]: page.locator(f'[id="{sid}"]').click())
+        if not esperar_valor(page, "() => (document.querySelector('div.paginacion span.actual') || {}).textContent?.trim()", str(actual + 1)):
+            log.warning("El paginador no llegó a la página %d (diputado %d)", actual + 1, diputado_id)
         raw = extraer_ficha(page)
         nuevo = a_entero(raw.get("pagina_actual")) or actual + 1
         if nuevo == actual:
@@ -433,6 +454,7 @@ def seleccionar(page, sufijo_id: str, etiqueta: str) -> None:
     if actual.lower() == etiqueta.lower():
         return
     hacer_postback(page, lambda: sel.select_option(label=etiqueta))
+    esperar_valor(page, f"() => document.querySelector('select[id$={sufijo_id}]').selectedOptions[0].text.trim().toLowerCase()", etiqueta.lower())
 
 
 def meses_en_rango(desde: date, hasta: date) -> list[tuple[int, int]]:
