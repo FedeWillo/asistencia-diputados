@@ -188,3 +188,80 @@ FROM asistencia_sala a
 JOIN sesion_sala s ON s.id = a.sesion_id
 WHERE s.estado = 1 AND s.tipo != 3 AND s.fecha_inicio >= '2026-03-11'
 GROUP BY a.diputado_id;
+
+-- ---------------------------------------------------------------------------
+-- Datos obtenidos del sitio camara.cl con scraper.py (módulo opcional, desacoplado de la ingesta del API).
+-- Tablas separadas de las del API porque la fuente y los Id son distintos.
+-- ---------------------------------------------------------------------------
+
+-- Cabecera y resumen oficial de la ficha de asistencia a Sala de cada diputado (asistencia_sala.aspx?prmId=<Id>)
+CREATE TABLE IF NOT EXISTS ficha_diputado (
+    diputado_id             INTEGER PRIMARY KEY,
+    distrito                TEXT,
+    region                  TEXT,
+    comunas                 TEXT,
+    periodo                 TEXT,
+    partido                 TEXT,
+    bancada                 TEXT,
+    total_sesiones          INTEGER,
+    computables             INTEGER,
+    asiste                  INTEGER,
+    justificadas_no_afectan INTEGER,
+    justificadas_rebajan    INTEGER,
+    sin_justificacion       INTEGER,
+    pct_ficha               REAL,        -- tal como lo publica la ficha (puede superar 100 por el Congreso Pleno)
+    capturado_en            TEXT
+);
+
+-- Detalle por sesión de la ficha: aquí está la hora de ingreso (puntualidad)
+CREATE TABLE IF NOT EXISTS ingreso_sala (
+    diputado_id     INTEGER NOT NULL,
+    sesion_numero   INTEGER NOT NULL,
+    fecha           TEXT NOT NULL,       -- YYYY-MM-DD
+    hora_inicio     TEXT,                -- HH:MM publicada en la ficha
+    hora_termino    TEXT,
+    hora_ingreso    TEXT,                -- HH:MM; NULL si no hay marca
+    asistencia      TEXT,                -- 'Asiste' / 'Ausente'
+    observacion     TEXT,                -- causal reglamentaria (sin el documento de respaldo)
+    capturado_en    TEXT,
+    PRIMARY KEY (diputado_id, sesion_numero, fecha)
+);
+
+-- Minutos de atraso respecto del inicio publicado de la sesión (solo quienes marcaron ingreso)
+DROP VIEW IF EXISTS v_puntualidad;
+CREATE VIEW v_puntualidad AS
+SELECT diputado_id, sesion_numero, fecha, hora_inicio, hora_ingreso,
+       CAST(ROUND((strftime('%s', '2000-01-01 ' || hora_ingreso || ':00') - strftime('%s', '2000-01-01 ' || hora_inicio || ':00')) / 60.0) AS INTEGER) AS atraso_min
+FROM ingreso_sala
+WHERE asistencia = 'Asiste' AND hora_ingreso IS NOT NULL AND hora_inicio IS NOT NULL;
+
+-- Comisiones vigentes según la web (Id propios de camara.cl, distintos de los del API)
+CREATE TABLE IF NOT EXISTS web_comision (
+    id              INTEGER PRIMARY KEY,
+    nombre          TEXT NOT NULL,
+    tipo            TEXT,                -- permanentes / unidas / otras
+    capturado_en    TEXT
+);
+
+CREATE TABLE IF NOT EXISTS web_sesion_comision (
+    id                      INTEGER PRIMARY KEY,    -- prmIdSesion de la web
+    comision_id             INTEGER NOT NULL,
+    numero                  INTEGER,
+    fecha                   TEXT NOT NULL,
+    hora_inicio             TEXT,
+    hora_termino            TEXT,
+    estado                  TEXT,                   -- Celebrada / Citada / Suspendida / ...
+    asistencia_cargada_en   TEXT
+);
+
+-- Un registro por integrante titular de la sesión, más uno por cada reemplazante (estado 'REEMPLAZANTE')
+CREATE TABLE IF NOT EXISTS web_asistencia_comision (
+    sesion_id           INTEGER NOT NULL,
+    diputado_id         INTEGER NOT NULL,
+    estado              TEXT NOT NULL,       -- ASISTE / JUSTIFICADO / REEMPLAZADO / REEMPLAZANTE / texto crudo
+    asiste              INTEGER NOT NULL,    -- 1 si estuvo presente (titular que asiste o reemplazante)
+    justificado         INTEGER NOT NULL DEFAULT 0,
+    reemplazado_por     TEXT,                -- nombre tal como lo publica la web
+    reemplazante_id     INTEGER,             -- resuelto contra la tabla diputado si fue posible
+    PRIMARY KEY (sesion_id, diputado_id)
+);

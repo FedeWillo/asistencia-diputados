@@ -11,6 +11,7 @@ de Claude (`plan-webapp.md`, `investigacion-benchmark-y-datos.md`).
 - `data/camara.sqlite` — base generada (versionada mientras sea chica).
 - `tests/` — tests con fixtures XML que replican la estructura real del API.
 - `.github/workflows/ingesta.yml` — cron diario que corre `ingesta.py diario` y commitea la base.
+- `scraper.py` + `.github/workflows/scraper.yml` — módulo OPCIONAL con Playwright para camara.cl (hora de ingreso, cabecera de fichas, comisiones 2026-2030). Tests en `tests/test_scraper.py` con HTML en `tests/fixtures/web/` (se saltan si no hay Playwright).
 
 ## Reglas
 - Namespace obligatorio en todo `findall`: `{http://opendata.camara.cl/camaradiputados/v1}` (usar `NS`).

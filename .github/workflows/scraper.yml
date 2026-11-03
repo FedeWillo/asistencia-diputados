@@ -1,0 +1,67 @@
+name: Scraper camara.cl
+
+# Módulo opcional: hora de ingreso a Sala (puntualidad), cabecera de fichas y asistencia a comisiones 2026-2030.
+# Por ahora solo manual. Los argumentos se pasan como texto a `python scraper.py <comando> <argumentos>`.
+
+on:
+  workflow_dispatch:
+    inputs:
+      fichas:
+        description: "Argumentos de `scraper.py fichas` (vacío = no correr). Ej: --limite 3 --paginas 2"
+        default: "--limite 3 --paginas 2"
+      comisiones:
+        description: "Argumentos de `scraper.py comisiones` (vacío = no correr). Ej: --ids 4894 --desde 2026-10-01"
+        default: "--ids 4894 --desde 2026-10-01"
+
+permissions:
+  contents: write
+
+# mismo grupo que la ingesta del API: ambas escriben data/camara.sqlite
+concurrency:
+  group: ingesta
+  cancel-in-progress: false
+
+jobs:
+  scraper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar Playwright y Chromium
+        run: |
+          pip install playwright
+          playwright install --with-deps chromium
+
+      - name: Tests (incluye extractores con Chromium)
+        run: python -m unittest discover -s tests
+
+      - name: Fichas de Sala
+        if: ${{ inputs.fichas != '' }}
+        env:
+          ARGS: ${{ inputs.fichas }}
+        run: python scraper.py fichas $ARGS
+
+      - name: Comisiones 2026-2030
+        if: ${{ inputs.comisiones != '' }}
+        env:
+          ARGS: ${{ inputs.comisiones }}
+        run: python scraper.py comisiones $ARGS
+
+      - name: Estado
+        if: ${{ always() }}
+        run: python scraper.py estado | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit de la base
+        if: ${{ always() }}
+        run: |
+          git config user.name "ingesta-bot"
+          git config user.email "ingesta-bot@users.noreply.github.com"
+          git add data/camara.sqlite
+          git diff --cached --quiet || git commit -m "Scraper $(date -u +%Y-%m-%d)"
+          git pull --rebase origin main
+          git push
