@@ -165,3 +165,26 @@ CREATE INDEX IF NOT EXISTS idx_asistencia_sala_dip ON asistencia_sala(diputado_i
 CREATE INDEX IF NOT EXISTS idx_voto_dip ON voto(diputado_id);
 CREATE INDEX IF NOT EXISTS idx_votacion_sesion ON votacion(sesion_id);
 CREATE INDEX IF NOT EXISTS idx_sesion_sala_fecha ON sesion_sala(fecha_inicio);
+
+-- Asistencia a Sala, criterio oficial de la Cámara (validado el 4-nov-2026 contra 6 fichas de camara.cl).
+--   computables           = sesiones celebradas de la Cámara donde el diputado figura en la nómina (excluye Congreso Pleno, tipo 3)
+--   justificadas_no_afectan = No Asiste con RebajaAsistencia = true  (la ficha las saca del denominador)
+--   justificadas_rebajan  = No Asiste con justificación y RebajaAsistencia = false (cuentan como ausencia)
+--   sin_justificacion     = No Asiste sin justificación (cuentan como ausencia)
+--   pct_oficial           = asiste / (computables - justificadas_no_afectan)
+--   pct_estricto          = asiste / computables
+-- Período 2026-2030 (desde el 11-mar-2026). Al abrir un nuevo período hay que parametrizar la fecha.
+DROP VIEW IF EXISTS v_asistencia_oficial;
+CREATE VIEW v_asistencia_oficial AS
+SELECT a.diputado_id,
+       COUNT(*)                                                                    AS computables,
+       SUM(a.asiste = 1)                                                           AS asiste,
+       SUM(a.asiste = 0 AND IFNULL(a.rebaja_asistencia, 0) = 1)                    AS justificadas_no_afectan,
+       SUM(a.asiste = 0 AND a.justificacion_valor IS NOT NULL AND IFNULL(a.rebaja_asistencia, 0) = 0) AS justificadas_rebajan,
+       SUM(a.asiste = 0 AND a.justificacion_valor IS NULL)                         AS sin_justificacion,
+       ROUND(100.0 * SUM(a.asiste = 1) / NULLIF(COUNT(*) - SUM(a.asiste = 0 AND IFNULL(a.rebaja_asistencia, 0) = 1), 0), 2) AS pct_oficial,
+       ROUND(100.0 * SUM(a.asiste = 1) / COUNT(*), 2)                              AS pct_estricto
+FROM asistencia_sala a
+JOIN sesion_sala s ON s.id = a.sesion_id
+WHERE s.estado = 1 AND s.tipo != 3 AND s.fecha_inicio >= '2026-03-11'
+GROUP BY a.diputado_id;

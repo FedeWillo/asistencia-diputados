@@ -157,6 +157,19 @@ class TestCarga(unittest.TestCase):
         self.assertEqual(f[3], (4837, 0))
         self.assertEqual(f[4], (None, 0))
 
+    def test_vista_asistencia_oficial(self):
+        ingesta.cargar_sala(self.conn, 2026)   # solo la sesión 4837 (7-oct) cuenta; la 4736 es de enero
+        # Congreso Pleno (tipo 3): no debe contarse
+        self.conn.execute("INSERT INTO sesion_sala (id, numero, fecha_inicio, tipo, estado, anno) VALUES (9001, 0, '2026-06-01T12:00:00', 3, 1, 2026)")
+        self.conn.execute("INSERT INTO asistencia_sala (sesion_id, diputado_id, asiste) VALUES (9001, 803, 1)")
+        v = {r["diputado_id"]: r for r in self.conn.execute("SELECT * FROM v_asistencia_oficial")}
+        self.assertEqual(v[803]["computables"], 1)                      # el Pleno no cuenta
+        self.assertEqual(v[803]["pct_oficial"], 100.0)
+        self.assertEqual(v[1012]["justificadas_no_afectan"], 1)         # impedimento grave: RebajaAsistencia = true
+        self.assertIsNone(v[1012]["pct_oficial"])                       # denominador 0
+        self.assertEqual(v[999]["sin_justificacion"], 1)
+        self.assertEqual(v[999]["pct_oficial"], 0.0)
+
     def test_catalogos(self):
         ingesta.cargar_catalogos(self.conn)
         self.assertEqual(self.n("justificacion_tipo"), 3)
