@@ -15,6 +15,10 @@ Uso (requiere `pip install playwright` y `playwright install chromium`):
     python scraper.py comisiones                            # permanentes desde el 11-mar-2026
     python scraper.py estado
 
+IMPORTANTE (3-nov-2026): camara.cl está detrás de Cloudflare y bloquea con un desafío anti-bot (403) las visitas desde
+GitHub Actions. El scraper NO intenta esquivarlo: se detiene. Hay que correrlo desde una conexión normal (tu computador):
+    python scraper.py diagnostico --visible      # comprueba si el sitio te deja pasar
+
 Reglas de convivencia con el sitio: ritmo bajo (pausa entre páginas), un solo navegador, y si el sitio responde
 403/429/503 o muestra una página de bloqueo, la corrida se detiene (no se insiste).
 Nunca se siguen los enlaces "ver" de las ausencias: abren documentos de justificación con datos personales.
@@ -493,13 +497,13 @@ def cmd_comisiones(conn, page, tipo: str, ids: list[int] | None, desde: date, ha
                 log.error("Asistencia sesión %d: %s", s["id"], e)
 
 
-def cmd_diagnostico() -> None:
+def cmd_diagnostico(headless: bool = True) -> None:
     """Pide una ficha con distintas configuraciones y muestra qué responde el sitio (para entender un bloqueo).
     No intenta evadir nada: solo compara el User-Agent propio con el de Chromium por defecto."""
     from playwright.sync_api import sync_playwright
     url = URL_FICHA.format(id=815)
     with sync_playwright() as pw:
-        browser = pw.chromium.launch()
+        browser = pw.chromium.launch(headless=headless)
         for nombre, ua in (("ua_propio", None), ("ua_chromium_por_defecto", "__defecto__")):
             kw = {"locale": "es-CL"}
             if ua is None:
@@ -549,7 +553,7 @@ def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S")
 
     if args.comando == "diagnostico":
-        cmd_diagnostico()
+        cmd_diagnostico(headless=not args.visible)
         return 0
     conn = abrir_db(args.db)
     if args.comando == "estado":

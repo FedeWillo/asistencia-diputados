@@ -1,6 +1,9 @@
 name: Scraper camara.cl
 
 # Módulo opcional: hora de ingreso a Sala (puntualidad), cabecera de fichas y asistencia a comisiones 2026-2030.
+# OJO (3-nov-2026): camara.cl está detrás de Cloudflare y responde 403 con un desafío anti-bot a las IP de GitHub Actions,
+# así que contra el sitio real este workflow se detiene (los tests sí corren). Queda para pruebas y por si el sitio
+# cambia su política; el scraper se usa desde un computador con conexión normal (ver README).
 # Por ahora solo manual. Los argumentos se pasan como texto a `python scraper.py <comando> <argumentos>`.
 
 on:
