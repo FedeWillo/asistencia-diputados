@@ -166,7 +166,7 @@ CREATE INDEX IF NOT EXISTS idx_voto_dip ON voto(diputado_id);
 CREATE INDEX IF NOT EXISTS idx_votacion_sesion ON votacion(sesion_id);
 CREATE INDEX IF NOT EXISTS idx_sesion_sala_fecha ON sesion_sala(fecha_inicio);
 
--- Asistencia a Sala, criterio oficial de la Cámara (validado el 4-nov-2026 contra 6 fichas de camara.cl).
+-- Asistencia a Sala, criterio oficial de la Cámara (validado el 3-nov-2026 contra 5 fichas de camara.cl).
 --   computables           = sesiones celebradas de la Cámara donde el diputado figura en la nómina (excluye Congreso Pleno, tipo 3)
 --   justificadas_no_afectan = No Asiste con RebajaAsistencia = true  (la ficha las saca del denominador)
 --   justificadas_rebajan  = No Asiste con justificación y RebajaAsistencia = false (cuentan como ausencia)
