@@ -111,6 +111,7 @@ class TestCarga(unittest.TestCase):
         ("WSLegislativo", "retornarVotacionDetalle"): "votacion_detalle.xml",
         ("WSComision", "retornarSesionesXComisionYAnno"): "comision_sesiones.xml",
         ("WSComision", "retornarComision"): "comision_sesiones.xml",
+        ("WSDiputado", "retornarDiputado"): "diputado.xml",
         ("WSComision", "retornarComisionesXPeriodo"): "comisiones_periodo.xml",
     }
 
@@ -132,6 +133,29 @@ class TestCarga(unittest.TestCase):
 
     def n(self, tabla):
         return self.conn.execute(f"SELECT COUNT(*) FROM {tabla}").fetchone()[0]
+
+    def test_completar_diputados(self):
+        self.conn.execute("INSERT INTO diputado (id, nombre, apellido_paterno) VALUES (803, '', '')")
+        self.conn.execute("INSERT INTO diputado (id, nombre, apellido_paterno, periodo_actual) VALUES (1, 'Ya', 'Completo', 1)")
+        self.assertEqual(ingesta.completar_diputados(self.conn), 1)
+        r = self.conn.execute("SELECT nombre, apellido_paterno, sexo, periodo_actual FROM diputado WHERE id = 803").fetchone()
+        self.assertEqual((r["nombre"], r["apellido_paterno"], r["sexo"], r["periodo_actual"]), ("René", "Alinco", 1, 0))
+        self.assertEqual(self.n("militancia"), 1)
+        self.assertEqual(ingesta.completar_diputados(self.conn), 0)  # nada más por completar
+
+    def test_votaciones_con_tolerancia(self):
+        ingesta.cargar_sala(self.conn, 2026)   # sesión 4837: 10:00:00–13:58:10 el 2026-10-07
+        base = ("INSERT INTO votacion (id, fecha, anno) VALUES (?, ?, 2026)")
+        self.conn.execute(base, (1, "2026-10-07T13:58:17"))   # 7 s después del término → aproximada
+        self.conn.execute(base, (2, "2026-10-07T09:59:10"))   # 50 s antes del inicio → aproximada
+        self.conn.execute(base, (3, "2026-10-07T13:20:00"))   # dentro → exacta
+        self.conn.execute(base, (4, "2026-10-07T15:30:00"))   # lejos → sin sesión
+        ingesta.unir_votaciones_con_sesiones(self.conn, 2026)
+        f = {r["id"]: (r["sesion_id"], r["sesion_aprox"]) for r in self.conn.execute("SELECT id, sesion_id, sesion_aprox FROM votacion")}
+        self.assertEqual(f[1], (4837, 1))
+        self.assertEqual(f[2], (4837, 1))
+        self.assertEqual(f[3], (4837, 0))
+        self.assertEqual(f[4], (None, 0))
 
     def test_catalogos(self):
         ingesta.cargar_catalogos(self.conn)

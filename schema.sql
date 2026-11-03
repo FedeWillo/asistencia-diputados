@@ -96,6 +96,7 @@ CREATE TABLE IF NOT EXISTS votacion (
     tipo_nombre         TEXT,
     anno                INTEGER NOT NULL,
     sesion_id           INTEGER REFERENCES sesion_sala(id),   -- unida por timestamp; NULL si no calza
+    sesion_aprox        INTEGER NOT NULL DEFAULT 0,           -- 1 = calzó solo con tolerancia (segundos fuera de la sesión)
     detalle_cargado_en  TEXT
 );
 

@@ -7,7 +7,7 @@ cambiado (sesiones recientes, justificaciones) y registra los cambios detectados
 
 Uso:
     python ingesta.py catalogos
-    python ingesta.py diputados
+    python ingesta.py diputados [--completar]
     python ingesta.py sala --anno 2026 [--limite 5] [--solo-nuevas]
     python ingesta.py votaciones --anno 2026 [--limite 5] [--solo-nuevas]
     python ingesta.py comisiones --periodo 10 --annos 2022 2023 2024 2025 2026
@@ -130,6 +130,9 @@ def abrir_db(path: Path = DB_PATH) -> sqlite3.Connection:
     # Migración: bases creadas antes de agregar periodo_id a sesion_comision
     if "periodo_id" not in {r[1] for r in conn.execute("PRAGMA table_info(sesion_comision)")}:
         conn.execute("ALTER TABLE sesion_comision ADD COLUMN periodo_id INTEGER")
+        conn.commit()
+    if "sesion_aprox" not in {r[1] for r in conn.execute("PRAGMA table_info(votacion)")}:
+        conn.execute("ALTER TABLE votacion ADD COLUMN sesion_aprox INTEGER NOT NULL DEFAULT 0")
         conn.commit()
     return conn
 
@@ -378,6 +381,33 @@ def cargar_diputados(conn: sqlite3.Connection) -> None:
     log.info("Diputados del período actual: %d", len(registros))
 
 
+def completar_diputados(conn: sqlite3.Connection) -> int:
+    """Completa con retornarDiputado los Id que solo existen como fila mínima (nombre vacío): diputados de
+    períodos anteriores que aparecen en asistencias, votos o comisiones pero no en retornarDiputadosPeriodoActual."""
+    ids = [r[0] for r in conn.execute("SELECT id FROM diputado WHERE nombre IS NULL OR nombre = '' ORDER BY id")]
+    log.info("Diputados sin nombre por completar: %d", len(ids))
+    hechos = 0
+    for i, did in enumerate(ids, 1):
+        try:
+            d, militancias, partidos = parse_diputado(descargar_xml("WSDiputado", "retornarDiputado", prmDiputadoId=did))
+        except RuntimeError as e:
+            log.error("Diputado %d: %s", did, e)
+            continue
+        if d["id"] is None:
+            log.warning("Diputado %d: el API devuelve vacío", did)
+            continue
+        upsert(conn, "partido", partidos, ("id",))
+        upsert(conn, "diputado", [d], ("id",))   # no toca periodo_actual
+        upsert(conn, "militancia", militancias, ("diputado_id", "partido_id", "fecha_inicio"))
+        hechos += 1
+        if i % 50 == 0:
+            conn.commit()
+            log.info("  %d/%d", i, len(ids))
+    conn.commit()
+    log.info("Diputados completados: %d de %d", hechos, len(ids))
+    return hechos
+
+
 def asegurar_diputados(conn: sqlite3.Connection, ids: set[int]) -> None:
     """Crea filas mínimas para diputados que aparecen en asistencias/votos pero no en el período actual
     (histórico). Se completan después con retornarDiputado si hace falta."""
@@ -453,8 +483,15 @@ def cargar_sala(conn: sqlite3.Connection, anno: int, limite: int | None = None, 
     log.info("Sala %d: asistencia cargada para %d sesiones; %d cambios detectados", anno, len(pendientes), total_cambios)
 
 
+# Las votaciones finales se registran unos segundos después del FechaTermino de la sesión (1–12 s observados el
+# 2-nov-2026) y alguna justo antes del FechaInicio (50 s). Se asignan a la sesión celebrada más cercana dentro de esta tolerancia.
+TOLERANCIA_ANTES_SEG = 120
+TOLERANCIA_DESPUES_SEG = 60
+
+
 def unir_votaciones_con_sesiones(conn: sqlite3.Connection, anno: int) -> int:
-    """Asigna sesion_id a cada votación cuya Fecha cae dentro de FechaInicio–FechaTermino de una sesión."""
+    """Asigna sesion_id a cada votación. 1) Fecha dentro de FechaInicio–FechaTermino (exacto);
+    2) las que quedan, a la sesión celebrada más cercana dentro de la tolerancia (sesion_aprox = 1)."""
     antes = conn.execute("SELECT COUNT(*) FROM votacion WHERE anno = ? AND sesion_id IS NOT NULL", (anno,)).fetchone()[0]
     conn.execute(
         """
@@ -466,6 +503,27 @@ def unir_votaciones_con_sesiones(conn: sqlite3.Connection, anno: int) -> int:
         WHERE anno = ? AND sesion_id IS NULL
         """,
         (anno,),
+    )
+    conn.execute(
+        """
+        UPDATE votacion SET sesion_id = (
+            SELECT s.id FROM sesion_sala s
+            WHERE s.estado = 1
+              AND votacion.fecha >= strftime('%Y-%m-%dT%H:%M:%S', s.fecha_inicio, ? )
+              AND votacion.fecha <= strftime('%Y-%m-%dT%H:%M:%S', COALESCE(s.fecha_termino, s.fecha_inicio), ? )
+            ORDER BY abs(julianday(votacion.fecha) - julianday(
+                CASE WHEN votacion.fecha < s.fecha_inicio THEN s.fecha_inicio ELSE COALESCE(s.fecha_termino, s.fecha_inicio) END))
+            LIMIT 1
+        ), sesion_aprox = 1
+        WHERE anno = ? AND sesion_id IS NULL
+          AND EXISTS (
+            SELECT 1 FROM sesion_sala s
+            WHERE s.estado = 1
+              AND votacion.fecha >= strftime('%Y-%m-%dT%H:%M:%S', s.fecha_inicio, ? )
+              AND votacion.fecha <= strftime('%Y-%m-%dT%H:%M:%S', COALESCE(s.fecha_termino, s.fecha_inicio), ? ))
+        """,
+        (f"-{TOLERANCIA_ANTES_SEG} seconds", f"+{TOLERANCIA_DESPUES_SEG} seconds", anno,
+         f"-{TOLERANCIA_ANTES_SEG} seconds", f"+{TOLERANCIA_DESPUES_SEG} seconds"),
     )
     conn.commit()
     despues = conn.execute("SELECT COUNT(*) FROM votacion WHERE anno = ? AND sesion_id IS NOT NULL", (anno,)).fetchone()[0]
@@ -518,6 +576,11 @@ def cargar_comisiones(conn: sqlite3.Connection, ids: list[int], annos: list[int]
             if com["id"] is None:
                 continue
             upsert(conn, "comision", [com], ("id",))
+            fuera = [x for x in sesiones if x["anno"] != anno]
+            if fuera:
+                log.warning("Comisión %d: %d sesiones con año distinto de %d descartadas (fechas %s)", cid, len(fuera), anno,
+                            ", ".join(x["fecha_inicio"][:10] for x in fuera[:3]))
+            sesiones = [x for x in sesiones if x["anno"] == anno]
             for s in sesiones:
                 asistencias = s.pop("asistencias")
                 upsert(conn, "sesion_comision", [s], ("id",))
@@ -565,7 +628,8 @@ def main(argv: list[str] | None = None) -> int:
     sub = p.add_subparsers(dest="comando", required=True)
 
     sub.add_parser("catalogos")
-    sub.add_parser("diputados")
+    sp = sub.add_parser("diputados")
+    sp.add_argument("--completar", action="store_true", help="solo completar nombres de diputados de períodos anteriores")
     sp = sub.add_parser("sala")
     sp.add_argument("--anno", type=int, default=date.today().year)
     sp.add_argument("--limite", type=int)
@@ -598,7 +662,11 @@ def main(argv: list[str] | None = None) -> int:
         if args.comando == "catalogos":
             cargar_catalogos(conn)
         elif args.comando == "diputados":
-            cargar_diputados(conn)
+            if args.completar:
+                completar_diputados(conn)
+            else:
+                cargar_diputados(conn)
+                completar_diputados(conn)
         elif args.comando == "sala":
             cargar_sala(conn, args.anno, args.limite, args.solo_nuevas)
         elif args.comando == "votaciones":
@@ -614,6 +682,7 @@ def main(argv: list[str] | None = None) -> int:
             cargar_sala(conn, args.anno)
             cargar_votaciones(conn, args.anno)
             cargar_comisiones_periodo(conn, 11, [args.anno])
+            completar_diputados(conn)
     except Exception as e:  # noqa: BLE001 — registrar y propagar
         ok, detalle = 0, repr(e)
         log.exception("Corrida fallida")

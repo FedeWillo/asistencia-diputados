@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Diputado xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://opendata.camara.cl/camaradiputados/v1">
+  <Id>803</Id>
+  <Nombre>René</Nombre>
+  <Nombre2 />
+  <ApellidoPaterno>Alinco</ApellidoPaterno>
+  <ApellidoMaterno>Bustos</ApellidoMaterno>
+  <FechaNacimiento>1960-01-01T00:00:00</FechaNacimiento>
+  <RUT />
+  <RUTDV />
+  <Sexo Valor="1">Masculino</Sexo>
+  <Militancias>
+    <Militancia>
+      <FechaInicio>2018-03-11T00:00:00</FechaInicio>
+      <FechaTermino>2026-03-10T00:00:00</FechaTermino>
+      <Partido><Id>IND</Id><Nombre>Independientes</Nombre><Alias>IND</Alias></Partido>
+    </Militancia>
+  </Militancias>
+</Diputado>
