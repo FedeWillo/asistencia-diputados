@@ -41,5 +41,4 @@ python scraper.py comisiones --ids 4894 --desde 2026-10-01       # Salud, desde 
 python scraper.py estado
 ```
 
-camara.cl usa Cloudflare y bloquea las visitas desde GitHub Actions (403); el scraper se detiene si lo detecta y no intenta
-esquivarlo. Ritmo bajo (≈1-2 s entre páginas). No sigue los enlaces "ver" de las ausencias (documentos de respaldo con datos personales).
+**Estado (3-nov-2026): no operativo contra el sitio real.** camara.cl usa Cloudflare: bloquea las visitas desde GitHub Actions (403) y, aun desde una conexión doméstica y con ventana visible, bloquea las acciones automatizadas con Playwright (el paginador y los selectores devuelven 403). El scraper se detiene si lo detecta y no intenta esquivarlo. Queda como código probado con HTML local, por si la Cámara cambia su política o autoriza el acceso. Ritmo bajo (≈1-2 s entre páginas). No sigue los enlaces "ver" de las ausencias (documentos de respaldo con datos personales).

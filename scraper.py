@@ -15,9 +15,10 @@ Uso (requiere `pip install playwright` y `playwright install chromium`):
     python scraper.py comisiones                            # permanentes desde el 11-mar-2026
     python scraper.py estado
 
-IMPORTANTE (3-nov-2026): camara.cl está detrás de Cloudflare y bloquea con un desafío anti-bot (403) las visitas desde
-GitHub Actions. El scraper NO intenta esquivarlo: se detiene. Hay que correrlo desde una conexión normal (tu computador):
-    python scraper.py diagnostico --visible      # comprueba si el sitio te deja pasar
+IMPORTANTE (3-nov-2026): camara.cl está detrás de Cloudflare. Desde GitHub Actions responde 403 con un desafío anti-bot y,
+incluso desde una conexión doméstica con ventana visible, bloquea con 403 los POST (paginador, selectores) del navegador
+automatizado. El scraper NO intenta esquivarlo: se detiene. No está operativo contra el sitio real.
+    python scraper.py diagnostico --visible      # muestra qué responde el sitio a una carga simple
 
 Reglas de convivencia con el sitio: ritmo bajo (pausa entre páginas), un solo navegador, y si el sitio responde
 403/429/503 o muestra una página de bloqueo, la corrida se detiene (no se insiste).
