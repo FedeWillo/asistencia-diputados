@@ -504,27 +504,24 @@ def unir_votaciones_con_sesiones(conn: sqlite3.Connection, anno: int) -> int:
         """,
         (anno,),
     )
-    conn.execute(
-        """
-        UPDATE votacion SET sesion_id = (
-            SELECT s.id FROM sesion_sala s
-            WHERE s.estado = 1
-              AND votacion.fecha >= strftime('%Y-%m-%dT%H:%M:%S', s.fecha_inicio, ? )
-              AND votacion.fecha <= strftime('%Y-%m-%dT%H:%M:%S', COALESCE(s.fecha_termino, s.fecha_inicio), ? )
-            ORDER BY abs(julianday(votacion.fecha) - julianday(
-                CASE WHEN votacion.fecha < s.fecha_inicio THEN s.fecha_inicio ELSE COALESCE(s.fecha_termino, s.fecha_inicio) END))
-            LIMIT 1
-        ), sesion_aprox = 1
-        WHERE anno = ? AND sesion_id IS NULL
-          AND EXISTS (
-            SELECT 1 FROM sesion_sala s
-            WHERE s.estado = 1
-              AND votacion.fecha >= strftime('%Y-%m-%dT%H:%M:%S', s.fecha_inicio, ? )
-              AND votacion.fecha <= strftime('%Y-%m-%dT%H:%M:%S', COALESCE(s.fecha_termino, s.fecha_inicio), ? ))
-        """,
-        (f"-{TOLERANCIA_ANTES_SEG} seconds", f"+{TOLERANCIA_DESPUES_SEG} seconds", anno,
-         f"-{TOLERANCIA_ANTES_SEG} seconds", f"+{TOLERANCIA_DESPUES_SEG} seconds"),
-    )
+    # Segunda pasada en Python (portable entre versiones de SQLite): sesión celebrada más cercana dentro de la tolerancia.
+    sesiones = [(r["id"], datetime.fromisoformat(r["fecha_inicio"]),
+                 datetime.fromisoformat(r["fecha_termino"] or r["fecha_inicio"]))
+                for r in conn.execute("SELECT id, fecha_inicio, fecha_termino FROM sesion_sala WHERE estado = 1 AND anno = ?", (anno,))]
+    for r in conn.execute("SELECT id, fecha FROM votacion WHERE anno = ? AND sesion_id IS NULL", (anno,)).fetchall():
+        t = datetime.fromisoformat(r["fecha"])
+        mejor, dist_mejor = None, None
+        for sid, ini_s, fin_s in sesiones:
+            if t < ini_s:
+                dist, ok = (ini_s - t).total_seconds(), (ini_s - t).total_seconds() <= TOLERANCIA_ANTES_SEG
+            elif t > fin_s:
+                dist, ok = (t - fin_s).total_seconds(), (t - fin_s).total_seconds() <= TOLERANCIA_DESPUES_SEG
+            else:
+                dist, ok = 0.0, True
+            if ok and (dist_mejor is None or dist < dist_mejor):
+                mejor, dist_mejor = sid, dist
+        if mejor is not None:
+            conn.execute("UPDATE votacion SET sesion_id = ?, sesion_aprox = 1 WHERE id = ?", (mejor, r["id"]))
     conn.commit()
     despues = conn.execute("SELECT COUNT(*) FROM votacion WHERE anno = ? AND sesion_id IS NOT NULL", (anno,)).fetchone()[0]
     return despues - antes
